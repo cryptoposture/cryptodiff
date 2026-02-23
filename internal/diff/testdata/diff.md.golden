@@ -1,0 +1,11 @@
+# cryptodiff posture diff
+
+- Added: **1**  
+- Removed: **0**  
+- Changed: **0**  
+- Unchanged: **0**
+
+## Added
+
+- `CRYPTO.ALG.DISALLOWED` (critical/high): Disallowed algorithm reference: md5 [`app.yaml`]
+

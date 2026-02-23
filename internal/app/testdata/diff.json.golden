@@ -1,0 +1,82 @@
+{
+  "schemaVersion": "0.2.0",
+  "generatedAt": "2026-01-01T00:00:00Z",
+  "baseSource": {
+    "repoPath": "/repo",
+    "commit": "base123",
+    "ref": "main"
+  },
+  "headSource": {
+    "repoPath": "/repo",
+    "commit": "head456",
+    "ref": "feature"
+  },
+  "summary": {
+    "addedCount": 1,
+    "removedCount": 0,
+    "changedCount": 1,
+    "unchangedCount": 0,
+    "addedBySeverity": {
+      "critical": 1
+    },
+    "changedByCategory": {
+      "tls": 1
+    }
+  },
+  "added": [
+    {
+      "id": "finding-add",
+      "ruleId": "CRYPTO.CERT.VERIFY_DISABLED",
+      "severity": "critical",
+      "category": "pki",
+      "confidence": "high",
+      "subject": "Certificate verification appears disabled",
+      "evidence": [
+        {
+          "path": "app.yaml",
+          "line": 22
+        }
+      ],
+      "fingerprint": "fp-add"
+    }
+  ],
+  "removed": [],
+  "changed": [
+    {
+      "before": {
+        "id": "finding-change",
+        "ruleId": "CRYPTO.TLS.MIN_VERSION",
+        "severity": "high",
+        "category": "tls",
+        "confidence": "high",
+        "subject": "Minimum TLS version set to 1.0",
+        "evidence": [
+          {
+            "path": "tls.yaml",
+            "line": 8
+          }
+        ],
+        "fingerprint": "fp-change"
+      },
+      "after": {
+        "id": "finding-change",
+        "ruleId": "CRYPTO.TLS.MIN_VERSION",
+        "severity": "high",
+        "category": "tls",
+        "confidence": "high",
+        "subject": "Minimum TLS version set to 1.1",
+        "evidence": [
+          {
+            "path": "tls.yaml",
+            "line": 8
+          }
+        ],
+        "fingerprint": "fp-change"
+      },
+      "changedFields": [
+        "subject"
+      ]
+    }
+  ],
+  "unchanged": []
+}

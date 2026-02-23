@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "0.2.0",
+  "generatedAt": "2026-01-01T00:00:00Z",
+  "tool": {
+    "name": "cryptodiff",
+    "version": "0.2.0-dev"
+  },
+  "source": {
+    "repoPath": "/repo",
+    "commit": "abc123",
+    "ref": "main"
+  },
+  "summary": {
+    "findings": 1,
+    "suppressed": 2
+  },
+  "suppressions": {
+    "inline": 1,
+    "ignoreFile": 1
+  },
+  "findings": [
+    {
+      "id": "finding-123",
+      "ruleId": "CRYPTO.ALG.DISALLOWED",
+      "severity": "critical",
+      "category": "algorithm",
+      "confidence": "high",
+      "subject": "Disallowed algorithm reference: md5",
+      "attributes": {
+        "attribute": "name",
+        "detectedValue": "md5"
+      },
+      "evidence": [
+        {
+          "path": "app.yaml",
+          "line": 10,
+          "snippetHash": "deadbeef"
+        }
+      ],
+      "fingerprint": "fp-123"
+    }
+  ]
+}

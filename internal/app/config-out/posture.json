@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "0.2.0",
+  "generatedAt": "2026-02-23T14:01:39Z",
+  "tool": {
+    "name": "cryptodiff",
+    "version": "0.2.0-dev"
+  },
+  "source": {
+    "repoPath": "/tmp/TestScanStrictErrorPrecedenceCLIOverConfig2797733832/001"
+  },
+  "summary": {
+    "findings": 1,
+    "scanErrors": 1
+  },
+  "suppressions": {},
+  "scanErrors": [
+    {
+      "path": "bad.yaml",
+      "stage": "scan_file",
+      "message": "file is not valid UTF-8"
+    }
+  ],
+  "findings": [
+    {
+      "id": "finding-42edde1b3c53",
+      "ruleId": "CRYPTO.TLS.MIN_VERSION",
+      "severity": "high",
+      "category": "tls",
+      "confidence": "high",
+      "subject": "Minimum TLS version set to 1.0",
+      "attributes": {
+        "attribute": "minVersion",
+        "detectedValue": "1.0"
+      },
+      "evidence": [
+        {
+          "path": "app.yaml",
+          "line": 1,
+          "snippetHash": "bdc6eb5f17f07ecf177cfebd0ab356040db3da60cb2b00eec0645f31e31b11e1"
+        }
+      ],
+      "fingerprint": "42edde1b3c53d46c28573313bd737338de2927d67318afb418356d4da5231b98"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "0.2.0",
+  "generatedAt": "2026-01-01T00:00:00Z",
+  "mode": "gate",
+  "failLevel": "high",
+  "policyVersion": "0.1",
+  "result": "fail",
+  "summary": {
+    "evaluatedFindings": 2,
+    "violations": 1,
+    "suppressed": 1
+  },
+  "violations": [
+    {
+      "ruleId": "CRYPTO.ALG.DISALLOWED",
+      "level": "critical",
+      "fingerprint": "fp-1",
+      "subject": "Disallowed algorithm reference: md5",
+      "category": "algorithm",
+      "detectedValue": "md5"
+    }
+  ],
+  "invalidExceptions": [
+    {
+      "id": "ex-1",
+      "ruleId": "CRYPTO.ALG.DISALLOWED",
+      "status": "invalid",
+      "message": "missing expiresAt"
+    }
+  ]
+}

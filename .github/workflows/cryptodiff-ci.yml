@@ -1,0 +1,73 @@
+name: cryptodiff-ci
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  cryptodiff:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve refs
+        id: refs
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "base-ref=origin/${{ github.base_ref }}" >> "${GITHUB_OUTPUT}"
+            echo "head-ref=${{ github.sha }}" >> "${GITHUB_OUTPUT}"
+          else
+            echo "base-ref=" >> "${GITHUB_OUTPUT}"
+            echo "head-ref=" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: cryptodiff scan
+        id: scan
+        uses: ./.github/actions/scan
+        with:
+          config: cryptodiff.yaml
+          out-dir: cryptodiff-out
+          base-ref: ${{ steps.refs.outputs.base-ref }}
+          head-ref: ${{ steps.refs.outputs.head-ref }}
+          upload-artifacts: "true"
+
+      - name: Upload SARIF
+        if: ${{ steps.scan.outputs.sarif-path != '' }}
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ steps.scan.outputs.sarif-path }}
+
+      - name: Select audit input
+        id: audit-input
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "${{ steps.scan.outputs.diff-path }}" ]]; then
+            echo "diff-path=${{ steps.scan.outputs.diff-path }}" >> "${GITHUB_OUTPUT}"
+            echo "snapshot-path=" >> "${GITHUB_OUTPUT}"
+          else
+            echo "diff-path=" >> "${GITHUB_OUTPUT}"
+            echo "snapshot-path=${{ steps.scan.outputs.snapshot-path }}" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: cryptodiff audit
+        id: audit
+        uses: ./.github/actions/audit
+        with:
+          config: cryptodiff.yaml
+          policy: policy/cryptodiff-policy.yaml
+          diff-path: ${{ steps.audit-input.outputs.diff-path }}
+          snapshot-path: ${{ steps.audit-input.outputs.snapshot-path }}
+          mode: gate
+          fail-level: high
+          out-dir: cryptodiff-out
+          upload-artifacts: "true"

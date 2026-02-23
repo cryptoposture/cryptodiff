@@ -1,0 +1,136 @@
+name: cryptodiff-scan
+description: Run cryptodiff scan and optionally produce base/head diff artifacts.
+
+inputs:
+  config:
+    description: Path to cryptodiff config file relative to repo root.
+    required: false
+    default: cryptodiff.yaml
+  out-dir:
+    description: Output directory for scan artifacts.
+    required: false
+    default: cryptodiff-out
+  strict-scan-errors:
+    description: Fail scan when file/path scan errors are encountered.
+    required: false
+    default: "false"
+  base-ref:
+    description: Optional base ref. If set with head-ref, action runs base/head scans and diff.
+    required: false
+    default: ""
+  head-ref:
+    description: Optional head ref. If set with base-ref, action runs base/head scans and diff.
+    required: false
+    default: ""
+  upload-artifacts:
+    description: Upload generated scan artifacts.
+    required: false
+    default: "true"
+
+outputs:
+  snapshot-path:
+    description: Path to posture.json snapshot artifact.
+    value: ${{ steps.run-scan.outputs.snapshot-path }}
+  diff-path:
+    description: Path to diff.json if base/head mode is used.
+    value: ${{ steps.run-scan.outputs.diff-path }}
+  sarif-path:
+    description: Path to posture SARIF artifact.
+    value: ${{ steps.run-scan.outputs.sarif-path }}
+  cbom-path:
+    description: Path to cbom.json artifact.
+    value: ${{ steps.run-scan.outputs.cbom-path }}
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: ${{ github.workspace }}/go.mod
+
+    - name: Build cryptodiff binary
+      id: build
+      shell: bash
+      run: |
+        set -euo pipefail
+        cd "${GITHUB_WORKSPACE}"
+        BIN_PATH="${RUNNER_TEMP}/cryptodiff"
+        go build -o "${BIN_PATH}" ./cmd/cryptodiff
+        echo "binary-path=${BIN_PATH}" >> "${GITHUB_OUTPUT}"
+
+    - name: Run scan (and optional diff)
+      id: run-scan
+      shell: bash
+      run: |
+        set -euo pipefail
+        BIN="${{ steps.build.outputs.binary-path }}"
+        OUT_DIR="${{ inputs.out-dir }}"
+        CONFIG_REL="${{ inputs.config }}"
+        DEFAULT_CONFIG="cryptodiff.yaml"
+        STRICT_SCAN_ERRORS="${{ inputs.strict-scan-errors }}"
+        BASE_REF="${{ inputs.base-ref }}"
+        HEAD_REF="${{ inputs.head-ref }}"
+
+        mkdir -p "${OUT_DIR}"
+
+        if [[ -n "${BASE_REF}" && -z "${HEAD_REF}" ]] || [[ -z "${BASE_REF}" && -n "${HEAD_REF}" ]]; then
+          echo "Both base-ref and head-ref are required when using range scan mode." >&2
+          exit 2
+        fi
+
+        if [[ -n "${BASE_REF}" && -n "${HEAD_REF}" ]]; then
+          TMP_DIR="$(mktemp -d)"
+          TRUSTED_CONFIG_PATH="${TMP_DIR}/trusted-config.yaml"
+
+          cleanup() {
+            rm -rf "${TMP_DIR}"
+          }
+          trap cleanup EXIT
+
+          SCAN_CONFIG_ARGS=()
+          if git -C "${GITHUB_WORKSPACE}" show "${BASE_REF}:${CONFIG_REL}" > "${TRUSTED_CONFIG_PATH}"; then
+            SCAN_CONFIG_ARGS=(--config "${TRUSTED_CONFIG_PATH}")
+          elif [[ "${CONFIG_REL}" == "${DEFAULT_CONFIG}" ]]; then
+            echo "Config ${CONFIG_REL} not found on base ref; continuing with built-in defaults." >&2
+          else
+            echo "Failed to read trusted config from base ref: ${BASE_REF}:${CONFIG_REL}" >&2
+            exit 2
+          fi
+
+          "${BIN}" scan --repo "${GITHUB_WORKSPACE}" "${SCAN_CONFIG_ARGS[@]}" --out-dir "${OUT_DIR}" --strict-scan-errors="${STRICT_SCAN_ERRORS}" --base-ref "${BASE_REF}" --head-ref "${HEAD_REF}"
+
+          SNAPSHOT_PATH="${OUT_DIR}/head/posture.json"
+          DIFF_PATH="${OUT_DIR}/diff.json"
+          SARIF_PATH="${OUT_DIR}/head/posture.sarif"
+          CBOM_PATH="${OUT_DIR}/head/cbom.json"
+        else
+          SCAN_CONFIG_ARGS=()
+          if [[ -f "${GITHUB_WORKSPACE}/${CONFIG_REL}" ]]; then
+            SCAN_CONFIG_ARGS=(--config "${CONFIG_REL}")
+          elif [[ "${CONFIG_REL}" == "${DEFAULT_CONFIG}" ]]; then
+            echo "Config ${CONFIG_REL} not found; continuing with built-in defaults." >&2
+          else
+            echo "Configured file not found: ${CONFIG_REL}" >&2
+            exit 2
+          fi
+
+          "${BIN}" scan --repo "${GITHUB_WORKSPACE}" "${SCAN_CONFIG_ARGS[@]}" --out-dir "${OUT_DIR}" --strict-scan-errors="${STRICT_SCAN_ERRORS}"
+
+          SNAPSHOT_PATH="${OUT_DIR}/posture.json"
+          DIFF_PATH=""
+          SARIF_PATH="${OUT_DIR}/posture.sarif"
+          CBOM_PATH="${OUT_DIR}/cbom.json"
+        fi
+
+        echo "snapshot-path=${SNAPSHOT_PATH}" >> "${GITHUB_OUTPUT}"
+        echo "diff-path=${DIFF_PATH}" >> "${GITHUB_OUTPUT}"
+        echo "sarif-path=${SARIF_PATH}" >> "${GITHUB_OUTPUT}"
+        echo "cbom-path=${CBOM_PATH}" >> "${GITHUB_OUTPUT}"
+
+    - name: Upload scan artifacts
+      if: ${{ inputs.upload-artifacts == 'true' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: cryptodiff-scan-${{ github.run_id }}
+        path: ${{ inputs.out-dir }}

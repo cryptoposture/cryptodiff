@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cryptoposture.github.io/cryptodiff/schemas/posture.schema.json",
+  "title": "cryptodiff posture",
+  "type": "object",
+  "required": ["schemaVersion", "tool", "source", "summary", "suppressions", "findings"],
+  "properties": {
+    "schemaVersion": { "type": "string" },
+    "generatedAt": { "type": "string" },
+    "tool": {
+      "type": "object",
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "type": "string" },
+        "version": { "type": "string" }
+      }
+    },
+    "source": {
+      "type": "object",
+      "required": ["repoPath"],
+      "properties": {
+        "repoPath": { "type": "string" },
+        "commit": { "type": "string" },
+        "ref": { "type": "string" }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["findings"],
+      "properties": {
+        "findings": { "type": "integer" },
+        "suppressed": { "type": "integer", "minimum": 0 },
+        "scanErrors": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "suppressions": {
+      "type": "object",
+      "properties": {
+        "inline": { "type": "integer", "minimum": 0 },
+        "ignoreFile": { "type": "integer", "minimum": 0 },
+        "configPath": { "type": "integer", "minimum": 0 },
+        "configRule": { "type": "integer", "minimum": 0 },
+        "configCategory": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "scanErrors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["stage", "message"],
+        "properties": {
+          "path": { "type": "string" },
+          "stage": { "type": "string" },
+          "message": { "type": "string" }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "ruleId", "severity", "category", "confidence", "subject", "fingerprint", "evidence"],
+        "properties": {
+          "id": { "type": "string" },
+          "ruleId": { "type": "string" },
+          "severity": { "type": "string" },
+          "category": { "type": "string" },
+          "confidence": { "type": "string" },
+          "subject": { "type": "string" },
+          "attributes": { "type": "object" },
+          "fingerprint": { "type": "string" },
+          "evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["path"],
+              "properties": {
+                "path": { "type": "string" },
+                "line": { "type": "integer" },
+                "snippetHash": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

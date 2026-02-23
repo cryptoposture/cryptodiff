@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cryptoposture.github.io/cryptodiff/schemas/diff.schema.json",
+  "title": "cryptodiff diff",
+  "type": "object",
+  "required": ["schemaVersion", "summary", "added", "removed", "changed", "unchanged"],
+  "properties": {
+    "schemaVersion": { "type": "string" },
+    "generatedAt": { "type": "string" },
+    "baseSource": { "type": "object" },
+    "headSource": { "type": "object" },
+    "summary": {
+      "type": "object",
+      "required": ["addedCount", "removedCount", "changedCount", "unchangedCount"],
+      "properties": {
+        "addedCount": { "type": "integer" },
+        "removedCount": { "type": "integer" },
+        "changedCount": { "type": "integer" },
+        "unchangedCount": { "type": "integer" },
+        "addedBySeverity": {
+          "type": "object",
+          "additionalProperties": { "type": "integer" }
+        },
+        "removedBySeverity": {
+          "type": "object",
+          "additionalProperties": { "type": "integer" }
+        },
+        "changedBySeverity": {
+          "type": "object",
+          "additionalProperties": { "type": "integer" }
+        },
+        "addedByCategory": {
+          "type": "object",
+          "additionalProperties": { "type": "integer" }
+        },
+        "removedByCategory": {
+          "type": "object",
+          "additionalProperties": { "type": "integer" }
+        },
+        "changedByCategory": {
+          "type": "object",
+          "additionalProperties": { "type": "integer" }
+        }
+      }
+    },
+    "added": { "type": "array" },
+    "removed": { "type": "array" },
+    "changed": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["before", "after"],
+        "properties": {
+          "before": { "type": "object" },
+          "after": { "type": "object" },
+          "changedFields": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "unchanged": { "type": "array" }
+  }
+}

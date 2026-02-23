@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cryptoposture.github.io/cryptodiff/schemas/audit.schema.json",
+  "title": "cryptodiff audit",
+  "type": "object",
+  "required": ["schemaVersion", "mode", "failLevel", "result", "summary", "violations"],
+  "properties": {
+    "schemaVersion": { "type": "string" },
+    "generatedAt": { "type": "string" },
+    "mode": { "type": "string", "enum": ["report", "gate"] },
+    "failLevel": { "type": "string" },
+    "policyVersion": { "type": "string" },
+    "result": { "type": "string", "enum": ["pass", "fail"] },
+    "summary": {
+      "type": "object",
+      "required": ["evaluatedFindings", "violations"],
+      "properties": {
+        "evaluatedFindings": { "type": "integer" },
+        "violations": { "type": "integer" },
+        "suppressed": { "type": "integer", "minimum": 0 },
+        "excepted": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "violations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["ruleId", "level", "fingerprint", "subject", "category"],
+        "properties": {
+          "ruleId": { "type": "string" },
+          "level": { "type": "string" },
+          "fingerprint": { "type": "string" },
+          "subject": { "type": "string" },
+          "category": { "type": "string" },
+          "detectedValue": { "type": "string" }
+        }
+      }
+    },
+    "invalidExceptions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["status"],
+        "properties": {
+          "id": { "type": "string" },
+          "ruleId": { "type": "string" },
+          "fingerprint": { "type": "string" },
+          "owner": { "type": "string" },
+          "reason": { "type": "string" },
+          "expiresAt": { "type": "string" },
+          "status": { "type": "string" },
+          "message": { "type": "string" }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,157 @@
+name: cryptodiff-audit
+description: Run cryptodiff audit over diff or snapshot and emit workflow outputs.
+
+inputs:
+  config:
+    description: Path to cryptodiff config file relative to repo root.
+    required: false
+    default: cryptodiff.yaml
+  policy:
+    description: Path to policy file.
+    required: false
+    default: policy/cryptodiff-policy.yaml
+  baseline:
+    description: Optional baseline file path.
+    required: false
+    default: ""
+  exceptions:
+    description: Optional exceptions file path.
+    required: false
+    default: ""
+  diff-path:
+    description: Path to diff.json for change-focused audit.
+    required: false
+    default: ""
+  snapshot-path:
+    description: Path to posture.json for snapshot audit.
+    required: false
+    default: ""
+  mode:
+    description: report or gate.
+    required: false
+    default: report
+  fail-level:
+    description: info|low|medium|high|critical.
+    required: false
+    default: high
+  out-dir:
+    description: Output directory for audit artifacts.
+    required: false
+    default: cryptodiff-out
+  upload-artifacts:
+    description: Upload generated audit artifacts.
+    required: false
+    default: "true"
+
+outputs:
+  violations-found:
+    description: true if violations exist in audit.json.
+    value: ${{ steps.run-audit.outputs.violations-found }}
+  violation-count:
+    description: Number of violations in audit.json.
+    value: ${{ steps.run-audit.outputs.violation-count }}
+  summary:
+    description: Human-readable audit summary.
+    value: ${{ steps.run-audit.outputs.summary }}
+  audit-path:
+    description: Path to generated audit.json.
+    value: ${{ steps.run-audit.outputs.audit-path }}
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: ${{ github.workspace }}/go.mod
+
+    - name: Build cryptodiff binary
+      id: build
+      shell: bash
+      run: |
+        set -euo pipefail
+        cd "${GITHUB_WORKSPACE}"
+        BIN_PATH="${RUNNER_TEMP}/cryptodiff"
+        go build -o "${BIN_PATH}" ./cmd/cryptodiff
+        echo "binary-path=${BIN_PATH}" >> "${GITHUB_OUTPUT}"
+
+    - name: Run audit
+      id: run-audit
+      shell: bash
+      run: |
+        set -euo pipefail
+        BIN="${{ steps.build.outputs.binary-path }}"
+        OUT_DIR="${{ inputs.out-dir }}"
+        POLICY="${{ inputs.policy }}"
+        CONFIG="${{ inputs.config }}"
+        MODE="${{ inputs.mode }}"
+        FAIL_LEVEL="${{ inputs.fail-level }}"
+        DIFF_PATH="${{ inputs.diff-path }}"
+        SNAPSHOT_PATH="${{ inputs.snapshot-path }}"
+        BASELINE_PATH="${{ inputs.baseline }}"
+        EXCEPTIONS_PATH="${{ inputs.exceptions }}"
+
+        if [[ -z "${DIFF_PATH}" && -z "${SNAPSHOT_PATH}" ]]; then
+          echo "Either diff-path or snapshot-path must be provided." >&2
+          exit 2
+        fi
+        if [[ -n "${DIFF_PATH}" && -n "${SNAPSHOT_PATH}" ]]; then
+          echo "Provide only one of diff-path or snapshot-path." >&2
+          exit 2
+        fi
+
+        mkdir -p "${OUT_DIR}"
+
+        CMD=("${BIN}" audit "--config" "${CONFIG}" "--policy" "${POLICY}" "--mode" "${MODE}" "--fail-level" "${FAIL_LEVEL}" "--out-dir" "${OUT_DIR}")
+        if [[ -n "${DIFF_PATH}" ]]; then
+          CMD+=("--diff" "${DIFF_PATH}")
+        else
+          CMD+=("--snapshot" "${SNAPSHOT_PATH}")
+        fi
+        if [[ -n "${BASELINE_PATH}" ]]; then
+          CMD+=("--baseline" "${BASELINE_PATH}")
+        fi
+        if [[ -n "${EXCEPTIONS_PATH}" ]]; then
+          CMD+=("--exceptions" "${EXCEPTIONS_PATH}")
+        fi
+
+        set +e
+        "${CMD[@]}"
+        EXIT_CODE=$?
+        set -e
+
+        if [[ "${EXIT_CODE}" -ne 0 && "${EXIT_CODE}" -ne 1 ]]; then
+          echo "cryptodiff audit failed with tool error (${EXIT_CODE})." >&2
+          exit "${EXIT_CODE}"
+        fi
+
+        AUDIT_PATH="${OUT_DIR}/audit.json"
+        if [[ ! -f "${AUDIT_PATH}" ]]; then
+          echo "Expected audit artifact not found: ${AUDIT_PATH}" >&2
+          exit 2
+        fi
+
+        read -r VIOLATION_COUNT RESULT < <(python3 -c 'import json,sys; d=json.load(open(sys.argv[1], encoding="utf-8")); print(len(d.get("violations", [])), d.get("result", "pass"))' "${AUDIT_PATH}")
+
+        if [[ "${VIOLATION_COUNT}" -gt 0 ]]; then
+          VIOLATIONS_FOUND="true"
+        else
+          VIOLATIONS_FOUND="false"
+        fi
+        SUMMARY="result=${RESULT}; violations=${VIOLATION_COUNT}; mode=${MODE}; fail-level=${FAIL_LEVEL}"
+
+        echo "violations-found=${VIOLATIONS_FOUND}" >> "${GITHUB_OUTPUT}"
+        echo "violation-count=${VIOLATION_COUNT}" >> "${GITHUB_OUTPUT}"
+        echo "summary=${SUMMARY}" >> "${GITHUB_OUTPUT}"
+        echo "audit-path=${AUDIT_PATH}" >> "${GITHUB_OUTPUT}"
+
+        if [[ "${EXIT_CODE}" -eq 1 ]]; then
+          exit 1
+        fi
+
+    - name: Upload audit artifacts
+      if: ${{ inputs.upload-artifacts == 'true' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: cryptodiff-audit-${{ github.run_id }}
+        path: ${{ inputs.out-dir }}

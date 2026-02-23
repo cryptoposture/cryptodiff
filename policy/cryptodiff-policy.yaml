@@ -1,0 +1,21 @@
+version: "0.2"
+rules:
+  - id: CRYPTO.TLS.MIN_VERSION
+    level: high
+    match:
+      category: tls
+      attribute: minVersion
+      op: <
+      value: "1.2"
+  - id: CRYPTO.ALG.DISALLOWED
+    level: critical
+    match:
+      category: algorithm
+      attribute: name
+      op: in
+      values:
+        - md5
+        - sha1
+        - des
+        - 3des
+        - rc4
