@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
   security-events: write
 
 jobs:
@@ -41,8 +42,8 @@ jobs:
           upload-artifacts: "true"
 
       - name: Upload SARIF
-        if: ${{ steps.scan.outputs.sarif-path != '' }}
-        uses: github/codeql-action/upload-sarif@v3
+        if: ${{ steps.scan.outputs.sarif-path != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false) }}
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: ${{ steps.scan.outputs.sarif-path }}
 
