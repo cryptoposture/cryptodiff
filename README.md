@@ -231,6 +231,8 @@ Example workflow:
 
 More details: `docs/ci.md`.
 
+Manual test plan: `docs/manual-test-plan.md`.
+
 Project model details: `docs/project-model.md`.
 
 Contribution policy: `CONTRIBUTING.md`.
