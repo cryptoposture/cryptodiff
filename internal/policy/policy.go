@@ -94,13 +94,13 @@ func parseLightweightPolicyYAML(input string) (model.Policy, error) {
 }
 
 type lightweightPolicyParser struct {
-	out     model.Policy
-	current *model.PolicyRule
-	inRules bool
-	inMatch bool
-	inValues bool
+	out          model.Policy
+	current      *model.PolicyRule
+	inRules      bool
+	inMatch      bool
+	inValues     bool
 	valuesIndent int
-	lineNo   int
+	lineNo       int
 }
 
 func (p *lightweightPolicyParser) parseLine(line string) error {

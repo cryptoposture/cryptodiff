@@ -25,6 +25,11 @@ Inputs:
 - `head-ref` (optional)
 - `upload-artifacts` (default `true`)
 
+Config behavior:
+
+- If `config` is left at default `cryptodiff.yaml` and the file is missing, the action falls back to built-in defaults.
+- If `config` is set to a non-default path and missing, the action fails fast.
+
 Base/head ref validation:
 
 - Set both `base-ref` and `head-ref` to run range mode (`base` + `head` scans and `diff.json`).

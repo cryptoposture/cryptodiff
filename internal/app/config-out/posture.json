@@ -1,12 +1,12 @@
 {
   "schemaVersion": "0.2.0",
-  "generatedAt": "2026-02-23T14:01:39Z",
+  "generatedAt": "2026-02-23T14:09:06Z",
   "tool": {
     "name": "cryptodiff",
     "version": "0.2.0-dev"
   },
   "source": {
-    "repoPath": "/tmp/TestScanStrictErrorPrecedenceCLIOverConfig2797733832/001"
+    "repoPath": "/tmp/TestScanStrictErrorPrecedenceCLIOverConfig3907728278/001"
   },
   "summary": {
     "findings": 1,

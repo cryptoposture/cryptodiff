@@ -84,6 +84,7 @@ runs:
         OUT_DIR="${{ inputs.out-dir }}"
         POLICY="${{ inputs.policy }}"
         CONFIG="${{ inputs.config }}"
+        DEFAULT_CONFIG="cryptodiff.yaml"
         MODE="${{ inputs.mode }}"
         FAIL_LEVEL="${{ inputs.fail-level }}"
         DIFF_PATH="${{ inputs.diff-path }}"
@@ -102,7 +103,17 @@ runs:
 
         mkdir -p "${OUT_DIR}"
 
-        CMD=("${BIN}" audit "--config" "${CONFIG}" "--policy" "${POLICY}" "--mode" "${MODE}" "--fail-level" "${FAIL_LEVEL}" "--out-dir" "${OUT_DIR}")
+        CONFIG_ARGS=()
+        if [[ -f "${GITHUB_WORKSPACE}/${CONFIG}" ]]; then
+          CONFIG_ARGS=(--config "${CONFIG}")
+        elif [[ "${CONFIG}" == "${DEFAULT_CONFIG}" ]]; then
+          echo "Config ${CONFIG} not found; continuing with built-in defaults." >&2
+        else
+          echo "Configured file not found: ${CONFIG}" >&2
+          exit 2
+        fi
+
+        CMD=("${BIN}" audit "${CONFIG_ARGS[@]}" "--policy" "${POLICY}" "--mode" "${MODE}" "--fail-level" "${FAIL_LEVEL}" "--out-dir" "${OUT_DIR}")
         if [[ -n "${DIFF_PATH}" ]]; then
           CMD+=("--diff" "${DIFF_PATH}")
         else

@@ -64,12 +64,12 @@ func scanRepository(absRepo string, cfg config.Config) (map[string]model.Finding
 		return nil, nil, nil, err
 	}
 	state := repoScanState{
-		absRepo:             absRepo,
-		maxFileBytes:        cfg.Scan.MaxFileBytes,
-		scope:               scope,
+		absRepo:              absRepo,
+		maxFileBytes:         cfg.Scan.MaxFileBytes,
+		scope:                scope,
 		findingByFingerprint: map[string]model.Finding{},
-		suppressionCounts:   map[string]int{},
-		scanErrors:          []model.ScanError{},
+		suppressionCounts:    map[string]int{},
+		scanErrors:           []model.ScanError{},
 	}
 	matcher, err := suppress.NewMatcher(absRepo, cfg.Suppress)
 	if err != nil {

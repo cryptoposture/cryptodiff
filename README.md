@@ -6,6 +6,16 @@ It scans code/config/IaC for cryptographic posture signals, produces review-read
 
 Primary audience: security and platform teams that want to enforce crypto policy in pull requests without overwhelming developers.
 
+## Project scope and commercialization
+
+`cryptodiff` follows an open-code scanner + closed control-plane model:
+
+- This repository contains the scanner CLI, artifact formats, default policy pack, and CI integration examples.
+- The planned `cryptoposture` control plane (hosted management, org policy workflows, and multi-tenant governance features) is proprietary and maintained in separate private repositories.
+
+This project is public for transparency and adoption, but it is not currently offered under an OSI open-source license.
+Usage rights are defined in `LICENSE`.
+
 ## Why cryptodiff
 
 - **PR-focused workflow**: generate posture artifacts, diff them, and gate only net-new risk.
@@ -220,6 +230,12 @@ Example workflow:
 - `./.github/workflows/cryptodiff-ci.yml`
 
 More details: `docs/ci.md`.
+
+Project model details: `docs/project-model.md`.
+
+Contribution policy: `CONTRIBUTING.md`.
+
+Security reporting: `SECURITY.md`.
 
 ## Development
 

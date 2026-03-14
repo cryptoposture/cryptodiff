@@ -336,8 +336,8 @@ func TestPathScopeMatcherDirectoryPruning(t *testing.T) {
 	}
 
 	tests := []struct {
-		dir       string
-		shouldGo  bool
+		dir      string
+		shouldGo bool
 	}{
 		{dir: "src", shouldGo: true},
 		{dir: "vendor", shouldGo: false},
