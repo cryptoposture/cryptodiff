@@ -220,6 +220,7 @@ func TestRunAuditGateFailsOnThresholdWhenPolicyDoesNotMatch(t *testing.T) {
 				"fingerprint": "fp-cert",
 				"attributes": map[string]any{
 					"attribute":     "verify",
+					// cryptodiff:ignore-next-line CRYPTO.CERT.VERIFY_DISABLED
 					"detectedValue": "insecureskipverify: true",
 				},
 				"evidence": []map[string]any{{"path": "app.yaml", "line": 1}},

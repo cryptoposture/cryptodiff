@@ -193,6 +193,7 @@ func TestThresholdOnlyFindingUsesFindingRuleID(t *testing.T) {
 			Subject:     "Certificate verification appears disabled",
 			Attributes: map[string]any{
 				"attribute":     "verify",
+				// cryptodiff:ignore-next-line CRYPTO.CERT.VERIFY_DISABLED
 				"detectedValue": "insecureskipverify: true",
 			},
 		},

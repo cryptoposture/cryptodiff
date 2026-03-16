@@ -221,6 +221,7 @@ Examples of environment variables:
   - inline directives (`cryptodiff:ignore`, `cryptodiff:ignore-next-line`)
   - ignore file (`.cryptodiffignore`)
   - config suppressions by rule/category/path
+- **Intentional insecure test fixtures**: prefer local inline directives on the exact fixture line (with a brief rationale comment) instead of broad path exclusions, so CI signal remains high for the rest of the repository.
 - **Baselines**: fail on net-new violations.
 - **Exceptions**: time-bound rule/fingerprint exceptions, with invalid/expired entries surfaced in `audit.json`.
 
