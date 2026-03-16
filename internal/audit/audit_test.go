@@ -192,7 +192,7 @@ func TestThresholdOnlyFindingUsesFindingRuleID(t *testing.T) {
 			Fingerprint: "fp-cert-1",
 			Subject:     "Certificate verification appears disabled",
 			Attributes: map[string]any{
-				"attribute":     "verify",
+				"attribute": "verify",
 				// cryptodiff:ignore-next-line CRYPTO.CERT.VERIFY_DISABLED
 				"detectedValue": "insecureskipverify: true",
 			},

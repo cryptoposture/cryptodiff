@@ -219,7 +219,7 @@ func TestRunAuditGateFailsOnThresholdWhenPolicyDoesNotMatch(t *testing.T) {
 				"subject":     "Certificate verification appears disabled",
 				"fingerprint": "fp-cert",
 				"attributes": map[string]any{
-					"attribute":     "verify",
+					"attribute": "verify",
 					// cryptodiff:ignore-next-line CRYPTO.CERT.VERIFY_DISABLED
 					"detectedValue": "insecureskipverify: true",
 				},
