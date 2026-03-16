@@ -26,7 +26,7 @@ const toolVersion = "0.2.0-dev"
 var (
 	tlsMinVersionPattern      = regexp.MustCompile(`(?i)(?:tls(?:[_\.\- ]?(?:min(?:imum)?[_\.\- ]?)?version)|min[_\.\- ]?tls[_\.\- ]?version|ssl_protocols)\s*[:= ]\s*["']?(tlsv1(?:\.0|\.1)?|1\.[01])\b`)
 	tlsWeakCipherPattern      = regexp.MustCompile(`(?i)(?:cipher|ciphers|cipher[_\.\- ]?suite|ciphersuites|ssl[_\.\- ]?ciphers)[^\n]*\b(rc4|3des|des|null|export|anon)\b`)
-	certVerifyDisabledPattern = regexp.MustCompile(`(?i)(insecureskipverify\s*[:=]\s*true|verify(?:_peer)?\s*[:=]\s*false|rejectunauthorized\s*[:=]\s*false|ssl[_\.\- ]?verify\s*[:=]\s*false|certificateverification\s*[:=]\s*none)`)
+	certVerifyDisabledPattern = regexp.MustCompile(`(?i)(insecureskipverify\s*[:=]\s*true|\bverify(?:_peer)?\b\s*[:=]\s*false|rejectunauthorized\s*[:=]\s*false|ssl[_\.\- ]?verify\s*[:=]\s*false|certificateverification\s*[:=]\s*none)`)
 	disallowedAlgPattern      = regexp.MustCompile(`(?i)\b(3des|md5|sha1|des|rc4)\b`)
 	rsaKeySizePattern         = regexp.MustCompile(`(?i)(?:rsa(?:[_\.\- ]?(?:key)?[_\.\- ]?size)|modulus[_\.\- ]?bits|key[_\.\- ]?size)\s*[:= ]\s*["']?([0-9]{3,5})\b`)
 	rsaInlineWeakBitsPattern  = regexp.MustCompile(`(?i)\brsa\b[^\n]{0,40}\b(512|768|1024|1536)\b`)

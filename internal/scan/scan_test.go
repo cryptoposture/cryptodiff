@@ -376,6 +376,41 @@ func TestNormalizeScanErrorPathPrefersRelativeAndFallsBackToBase(t *testing.T) {
 	}
 }
 
+func TestDetectFindingsInLineVerifyDisabledPatternPrecision(t *testing.T) {
+	positive := []string{
+		"insecureSkipVerify: true",
+		"rejectUnauthorized = false",
+		"ssl_verify: false",
+		"verify: false",
+		"verify_peer = false",
+		"certificateVerification: none",
+	}
+	for _, line := range positive {
+		t.Run("positive_"+line, func(t *testing.T) {
+			findings := detectFindingsInLine("app.yaml", 1, line)
+			if !hasRule(findings, "CRYPTO.CERT.VERIFY_DISABLED") {
+				t.Fatalf("expected CRYPTO.CERT.VERIFY_DISABLED for line %q", line)
+			}
+		})
+	}
+
+	negative := []string{
+		"email_verify: false",
+		"human_verify=false",
+		"notverify: false",
+		"do_not_verify: false",
+		"verification: false",
+	}
+	for _, line := range negative {
+		t.Run("negative_"+line, func(t *testing.T) {
+			findings := detectFindingsInLine("app.yaml", 1, line)
+			if hasRule(findings, "CRYPTO.CERT.VERIFY_DISABLED") {
+				t.Fatalf("did not expect CRYPTO.CERT.VERIFY_DISABLED for line %q", line)
+			}
+		})
+	}
+}
+
 func hasRule(findings []model.Finding, ruleID string) bool {
 	for _, f := range findings {
 		if f.RuleID == ruleID {
