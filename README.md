@@ -240,6 +240,8 @@ More details: `docs/ci.md`.
 
 Manual test plan: `docs/manual-test-plan.md`.
 
+Roadmap: `docs/roadmap.md`.
+
 Project model details: `docs/project-model.md`.
 
 Contribution policy: `CONTRIBUTING.md`.
