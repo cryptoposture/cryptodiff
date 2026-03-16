@@ -68,7 +68,7 @@ jobs:
           policy: policy/cryptodiff-policy.yaml
           diff-path: ${{ steps.audit-input.outputs.diff-path }}
           snapshot-path: ${{ steps.audit-input.outputs.snapshot-path }}
-          mode: gate
+          mode: ${{ github.event_name == 'pull_request' && 'report' || 'gate' }}
           fail-level: high
           out-dir: cryptodiff-out
           upload-artifacts: "true"

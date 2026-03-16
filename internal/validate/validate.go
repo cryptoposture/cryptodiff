@@ -121,6 +121,15 @@ func Audit(a model.AuditReport) error {
 	if a.Summary.Excepted < 0 {
 		return fmt.Errorf("audit.summary.excepted must be >= 0")
 	}
+	if a.Summary.ThresholdMatched < 0 {
+		return fmt.Errorf("audit.summary.thresholdMatched must be >= 0")
+	}
+	if a.Summary.PolicyMatched < 0 {
+		return fmt.Errorf("audit.summary.policyMatched must be >= 0")
+	}
+	if a.Summary.UnmappedFindings < 0 {
+		return fmt.Errorf("audit.summary.unmappedFindings must be >= 0")
+	}
 	for i, v := range a.Violations {
 		if strings.TrimSpace(v.RuleID) == "" {
 			return fmt.Errorf("audit.violations[%d].ruleId is required", i)
