@@ -86,6 +86,12 @@ Output:
 
 - `cryptodiff-out/audit.json`
 
+Hybrid enforcement semantics:
+
+- Findings at or above `--fail-level` are policy violations by default.
+- Policy rules can additionally map findings to policy-specific rule IDs and thresholds.
+- In `--mode gate`, any remaining violation after baseline/exception filtering fails the run.
+
 Exit codes:
 
 - `0`: pass

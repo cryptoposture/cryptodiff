@@ -17,6 +17,9 @@
       "properties": {
         "evaluatedFindings": { "type": "integer" },
         "violations": { "type": "integer" },
+        "thresholdMatched": { "type": "integer", "minimum": 0 },
+        "policyMatched": { "type": "integer", "minimum": 0 },
+        "unmappedFindings": { "type": "integer", "minimum": 0 },
         "suppressed": { "type": "integer", "minimum": 0 },
         "excepted": { "type": "integer", "minimum": 0 }
       }

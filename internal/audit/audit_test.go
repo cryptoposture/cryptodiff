@@ -22,20 +22,29 @@ func TestEvaluateSnapshotGateModeFailsWhenViolationsExist(t *testing.T) {
 	if report.Summary.Violations != 2 {
 		t.Fatalf("expected 2 violations, got %d", report.Summary.Violations)
 	}
+	if report.Summary.ThresholdMatched != 2 {
+		t.Fatalf("expected 2 thresholdMatched, got %d", report.Summary.ThresholdMatched)
+	}
+	if report.Summary.PolicyMatched != 0 {
+		t.Fatalf("expected 0 policyMatched, got %d", report.Summary.PolicyMatched)
+	}
+	if report.Summary.UnmappedFindings != 3 {
+		t.Fatalf("expected 3 unmappedFindings, got %d", report.Summary.UnmappedFindings)
+	}
 }
 
 func TestEvaluateDiffUsesAddedAndChangedAfterOnly(t *testing.T) {
 	diff := model.DiffReport{
 		Added: []model.Finding{
-			{RuleID: "A", Severity: "high"},
+			{RuleID: "A", Severity: "high", Fingerprint: "fp-added", Category: "tls", Subject: "added"},
 		},
 		Removed: []model.Finding{
-			{RuleID: "A", Severity: "critical"},
+			{RuleID: "A", Severity: "critical", Fingerprint: "fp-removed", Category: "tls", Subject: "removed"},
 		},
 		Changed: []model.ChangedFinding{
 			{
-				Before: model.Finding{RuleID: "A", Severity: "low"},
-				After:  model.Finding{RuleID: "A", Severity: "critical"},
+				Before: model.Finding{RuleID: "A", Severity: "low", Fingerprint: "fp-changed", Category: "tls", Subject: "before"},
+				After:  model.Finding{RuleID: "A", Severity: "critical", Fingerprint: "fp-changed", Category: "tls", Subject: "after"},
 			},
 		},
 	}
@@ -49,12 +58,21 @@ func TestEvaluateDiffUsesAddedAndChangedAfterOnly(t *testing.T) {
 	if report.Summary.Violations != 2 {
 		t.Fatalf("expected 2 violations, got %d", report.Summary.Violations)
 	}
+	if report.Summary.ThresholdMatched != 2 {
+		t.Fatalf("expected 2 thresholdMatched, got %d", report.Summary.ThresholdMatched)
+	}
+	if report.Summary.PolicyMatched != 0 {
+		t.Fatalf("expected 0 policyMatched, got %d", report.Summary.PolicyMatched)
+	}
+	if report.Summary.UnmappedFindings != 2 {
+		t.Fatalf("expected 2 unmappedFindings, got %d", report.Summary.UnmappedFindings)
+	}
 	if report.Result != "pass" {
 		t.Fatalf("expected report mode to return pass, got %s", report.Result)
 	}
 }
 
-func TestPolicyRuleFiltering(t *testing.T) {
+func TestPolicyRulesDoNotDisableSeverityThreshold(t *testing.T) {
 	findings := []model.Finding{
 		{RuleID: "CRYPTO.ALG.DISALLOWED", Severity: "critical"},
 		{RuleID: "CRYPTO.TLS.MIN_VERSION", Severity: "high"},
@@ -77,8 +95,11 @@ func TestPolicyRuleFiltering(t *testing.T) {
 		Mode:      "gate",
 		FailLevel: "high",
 	})
-	if report.Summary.Violations != 0 {
-		t.Fatalf("expected no violations after policy filtering, got %d", report.Summary.Violations)
+	if report.Summary.Violations != 2 {
+		t.Fatalf("expected threshold to still produce 2 violations, got %d", report.Summary.Violations)
+	}
+	if report.Summary.PolicyMatched != 0 {
+		t.Fatalf("expected no policy matches, got %d", report.Summary.PolicyMatched)
 	}
 }
 
@@ -112,10 +133,16 @@ func TestPolicyMatchCategoryAttributeAndOpValue(t *testing.T) {
 	}
 	report := EvaluateSnapshot(findings, policy, Options{Mode: "gate", FailLevel: "high"})
 	if report.Summary.Violations != 1 {
-		t.Fatalf("expected one matched violation, got %d", report.Summary.Violations)
+		t.Fatalf("expected one merged violation, got %d", report.Summary.Violations)
 	}
-	if report.Violations[0].RuleID != "TLS_RULE" {
-		t.Fatalf("expected violation to carry policy rule ID, got %s", report.Violations[0].RuleID)
+	if report.Summary.PolicyMatched != 1 {
+		t.Fatalf("expected policyMatched=1, got %d", report.Summary.PolicyMatched)
+	}
+	if report.Summary.UnmappedFindings != 0 {
+		t.Fatalf("expected unmappedFindings=0, got %d", report.Summary.UnmappedFindings)
+	}
+	if len(report.Violations) != 1 || report.Violations[0].RuleID != "TLS_RULE" {
+		t.Fatalf("expected policy rule to override threshold rule id, got %#v", report.Violations)
 	}
 }
 
@@ -150,5 +177,51 @@ func TestPolicyMatchInOperator(t *testing.T) {
 	report := EvaluateSnapshot(findings, policy, Options{Mode: "gate", FailLevel: "high"})
 	if report.Summary.Violations != 1 {
 		t.Fatalf("expected in-operator match to produce violation, got %d", report.Summary.Violations)
+	}
+	if report.Violations[0].RuleID != "ALG_RULE" {
+		t.Fatalf("expected policy rule id ALG_RULE, got %s", report.Violations[0].RuleID)
+	}
+}
+
+func TestThresholdOnlyFindingUsesFindingRuleID(t *testing.T) {
+	findings := []model.Finding{
+		{
+			RuleID:      "CRYPTO.CERT.VERIFY_DISABLED",
+			Severity:    "critical",
+			Category:    "pki",
+			Fingerprint: "fp-cert-1",
+			Subject:     "Certificate verification appears disabled",
+			Attributes: map[string]any{
+				"attribute":     "verify",
+				"detectedValue": "insecureskipverify: true",
+			},
+		},
+	}
+	policy := model.Policy{
+		Rules: []model.PolicyRule{
+			{
+				ID:    "TLS_RULE",
+				Level: "high",
+				Match: model.PolicyRuleMatch{
+					Category:  "tls",
+					Attribute: "minVersion",
+					Op:        "<",
+					Value:     "1.2",
+				},
+			},
+		},
+	}
+	report := EvaluateSnapshot(findings, policy, Options{Mode: "gate", FailLevel: "high"})
+	if report.Summary.Violations != 1 {
+		t.Fatalf("expected threshold-only violation, got %d", report.Summary.Violations)
+	}
+	if report.Violations[0].RuleID != "CRYPTO.CERT.VERIFY_DISABLED" {
+		t.Fatalf("expected finding rule id for threshold-only violation, got %s", report.Violations[0].RuleID)
+	}
+	if report.Summary.PolicyMatched != 0 {
+		t.Fatalf("expected policyMatched=0, got %d", report.Summary.PolicyMatched)
+	}
+	if report.Summary.UnmappedFindings != 1 {
+		t.Fatalf("expected unmappedFindings=1, got %d", report.Summary.UnmappedFindings)
 	}
 }

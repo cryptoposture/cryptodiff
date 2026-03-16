@@ -122,6 +122,9 @@ type AuditViolation struct {
 type AuditSummary struct {
 	EvaluatedFindings int `json:"evaluatedFindings"`
 	Violations        int `json:"violations"`
+	ThresholdMatched  int `json:"thresholdMatched,omitempty"`
+	PolicyMatched     int `json:"policyMatched,omitempty"`
+	UnmappedFindings  int `json:"unmappedFindings,omitempty"`
 	Suppressed        int `json:"suppressed,omitempty"`
 	Excepted          int `json:"excepted,omitempty"`
 }

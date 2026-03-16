@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -29,8 +30,8 @@ func LoadDiff(path string) (model.DiffReport, error) {
 }
 
 func EvaluateSnapshot(findings []model.Finding, policy model.Policy, opts Options) model.AuditReport {
-	violations := evaluateFindings(findings, policy, opts.FailLevel)
-	return newReport(opts, policy.Version, len(findings), violations)
+	violations, stats := evaluateFindings(findings, policy, opts.FailLevel)
+	return newReport(opts, policy.Version, len(findings), violations, stats)
 }
 
 func EvaluateDiff(d model.DiffReport, policy model.Policy, opts Options) model.AuditReport {
@@ -39,45 +40,102 @@ func EvaluateDiff(d model.DiffReport, policy model.Policy, opts Options) model.A
 	for _, ch := range d.Changed {
 		candidates = append(candidates, ch.After)
 	}
-	violations := evaluateFindings(candidates, policy, opts.FailLevel)
-	return newReport(opts, policy.Version, len(candidates), violations)
+	violations, stats := evaluateFindings(candidates, policy, opts.FailLevel)
+	return newReport(opts, policy.Version, len(candidates), violations, stats)
 }
 
-func evaluateFindings(findings []model.Finding, policy model.Policy, failLevel string) []model.AuditViolation {
-	out := make([]model.AuditViolation, 0)
+type evaluationStats struct {
+	ThresholdMatched int
+	PolicyMatched    int
+	UnmappedFindings int
+}
+
+func evaluateFindings(findings []model.Finding, policy model.Policy, failLevel string) ([]model.AuditViolation, evaluationStats) {
+	stats := evaluationStats{}
 	defaultThreshold := normalizeLevel(failLevel)
-	if len(policy.Rules) == 0 {
-		return evaluateFindingsWithoutRules(findings, defaultThreshold)
-	}
-	for _, f := range findings {
-		out = append(out, evaluateFindingAgainstRules(f, policy.Rules, defaultThreshold)...)
-	}
-	return out
-}
+	byFingerprint := map[string]model.AuditViolation{}
 
-func evaluateFindingsWithoutRules(findings []model.Finding, threshold string) []model.AuditViolation {
-	out := make([]model.AuditViolation, 0)
 	for _, f := range findings {
-		if severityRank(f.Severity) >= severityRank(threshold) {
-			out = append(out, newViolation(f.RuleID, f))
+		outcome := evaluateFindingHybrid(f, policy.Rules, defaultThreshold)
+		if outcome.policyMatched {
+			stats.PolicyMatched++
+		} else {
+			stats.UnmappedFindings++
+		}
+		if outcome.thresholdMatched {
+			stats.ThresholdMatched++
+		}
+		if outcome.hasViolation {
+			addViolation(byFingerprint, outcome.violation)
 		}
 	}
-	return out
+
+	out := make([]model.AuditViolation, 0, len(byFingerprint))
+	for _, v := range byFingerprint {
+		out = append(out, v)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Fingerprint != out[j].Fingerprint {
+			return out[i].Fingerprint < out[j].Fingerprint
+		}
+		return out[i].RuleID < out[j].RuleID
+	})
+	return out, stats
 }
 
-func evaluateFindingAgainstRules(f model.Finding, rules []model.PolicyRule, defaultThreshold string) []model.AuditViolation {
-	out := make([]model.AuditViolation, 0)
+type findingEvalOutcome struct {
+	policyMatched    bool
+	thresholdMatched bool
+	hasViolation     bool
+	violation        model.AuditViolation
+}
+
+func evaluateFindingHybrid(f model.Finding, rules []model.PolicyRule, defaultThreshold string) findingEvalOutcome {
+	outcome := findingEvalOutcome{
+		thresholdMatched: severityRank(f.Severity) >= severityRank(defaultThreshold),
+	}
+	policyViolations := make([]model.AuditViolation, 0)
 	for _, r := range rules {
 		if !ruleMatchesFinding(r, f) {
 			continue
 		}
+		outcome.policyMatched = true
 		threshold := thresholdForRule(r, defaultThreshold)
 		if severityRank(f.Severity) < severityRank(threshold) {
 			continue
 		}
-		out = append(out, newViolation(ruleIDForViolation(r, f), f))
+		policyViolations = append(policyViolations, newViolation(ruleIDForViolation(r, f), f))
 	}
-	return out
+	if len(policyViolations) > 0 {
+		sort.Slice(policyViolations, func(i, j int) bool {
+			return policyViolations[i].RuleID < policyViolations[j].RuleID
+		})
+		outcome.hasViolation = true
+		outcome.violation = policyViolations[0]
+		return outcome
+	}
+	if outcome.thresholdMatched {
+		outcome.hasViolation = true
+		outcome.violation = newViolation(f.RuleID, f)
+	}
+	return outcome
+}
+
+func addViolation(byFingerprint map[string]model.AuditViolation, v model.AuditViolation) {
+	key := strings.TrimSpace(v.Fingerprint)
+	if key == "" {
+		key = strings.TrimSpace(v.RuleID) + "|" +
+			strings.TrimSpace(v.Subject) + "|" +
+			strings.TrimSpace(v.Category) + "|" +
+			strings.TrimSpace(v.DetectedValue)
+		if key == "|||" {
+			key = strings.TrimSpace(v.RuleID)
+		}
+	}
+	if _, exists := byFingerprint[key]; exists {
+		return
+	}
+	byFingerprint[key] = v
 }
 
 func thresholdForRule(rule model.PolicyRule, defaultThreshold string) string {
@@ -232,7 +290,7 @@ func parseComparableValue(v string) (float64, bool) {
 	return n, true
 }
 
-func newReport(opts Options, policyVersion string, evaluated int, violations []model.AuditViolation) model.AuditReport {
+func newReport(opts Options, policyVersion string, evaluated int, violations []model.AuditViolation, stats evaluationStats) model.AuditReport {
 	mode := normalizeMode(opts.Mode)
 	failLevel := normalizeLevel(opts.FailLevel)
 
@@ -251,6 +309,9 @@ func newReport(opts Options, policyVersion string, evaluated int, violations []m
 		Summary: model.AuditSummary{
 			EvaluatedFindings: evaluated,
 			Violations:        len(violations),
+			ThresholdMatched:  stats.ThresholdMatched,
+			PolicyMatched:     stats.PolicyMatched,
+			UnmappedFindings:  stats.UnmappedFindings,
 		},
 		Violations: violations,
 	}
